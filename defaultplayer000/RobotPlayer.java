@@ -1,8 +1,5 @@
-package examplefuncsplayer;
-
+package defaultplayer000;
 import battlecode.common.*;
-//Allows the direct use of RobotTypes without having to reference RobotType
-import static battlecode.common.RobotType.*;
 
 public class RobotPlayer {
 	public static void run(RobotController rc) {
@@ -109,37 +106,6 @@ public class RobotPlayer {
 
             rc.attackLocation(toAttack);
         }
-        
-        /*This method attacks the highest priority enemy in enemies
-         * Pre-condition: All robots in enemies are withing attack range
-         */
-        RobotType[] priority = {LAUNCHER,DRONE,BASHER,SOLDIER,TANK,COMMANDER,MISSILE};
-        public void attackHighestPriorityEnemy(RobotInfo[] enemies) throws GameActionException{
-        	//If none in range, don't attack
-        	if (enemies.length == 0) {
-                return;
-            }
-        	
-        	//If no greatest priority, just attack the first one
-        	priority = this.priority;
-            int minPriority = -1;
-            MapLocation toAttack = enemies[0].location;
-            
-            RobotType enemy;
-            //Go through each enemy and check if it has higher priority
-            for(int i = 0; i<enemies.length; i++){
-            	enemy = enemies[i].type;
-            	for(int j = 0; j<priority.length; j++){
-            		if(j>minPriority&&enemy == priority[j]){
-            			minPriority = j;
-            			toAttack = enemies[i].location;
-            		}
-            	}
-            }
-            
-            //Attack the highest priority location
-            rc.attackLocation(toAttack);
-        }
 
         public void beginningOfTurn() {
             if (rc.senseEnemyHQLocation() != null) {
@@ -160,14 +126,22 @@ public class RobotPlayer {
             rc.yield();
         }
     }
-    
+
     public static class HQ extends BaseBot {
         public HQ(RobotController rc) {
             super(rc);
         }
 
         public void execute() throws GameActionException {
-        	//Set the rallypoint for the army
+            int numBeavers = rc.readBroadcast(2);
+
+            if (rc.isCoreReady() && rc.getTeamOre() > 100 && numBeavers < 10) {
+                Direction newDir = getSpawnDirection(RobotType.BEAVER);
+                if (newDir != null) {
+                    rc.spawn(newDir, RobotType.BEAVER);
+                    rc.broadcast(2, numBeavers + 1);
+                }
+            }
             MapLocation rallyPoint;
             if (Clock.getRoundNum() < 600) {
                 rallyPoint = new MapLocation( (this.myHQ.x + this.theirHQ.x) / 2,
@@ -178,27 +152,7 @@ public class RobotPlayer {
             }
             rc.broadcast(0, rallyPoint.x);
             rc.broadcast(1, rallyPoint.y);
-            
-            //Defend itself
-            RobotInfo[] enemies = getEnemiesInAttackingRange();
-            
-            if (enemies.length > 0) {
-                //attack!
-                if (rc.isWeaponReady()) {
-                    attackHighestPriorityEnemy(enemies);
-                }
-            }
-            
-            //Make Beavers
-            int numBeavers = rc.readBroadcast(2);
-            if (rc.isCoreReady() && rc.getTeamOre() > 100 && numBeavers < 10) {
-                Direction newDir = getSpawnDirection(RobotType.BEAVER);
-                if (newDir != null) {
-                    rc.spawn(newDir, RobotType.BEAVER);
-                    rc.broadcast(2, numBeavers + 1);
-                }
-            }
-            
+
             rc.yield();
         }
     }
@@ -242,14 +196,13 @@ public class RobotPlayer {
         }
 
         public void execute() throws GameActionException {
-        	
             if (rc.isCoreReady() && rc.getTeamOre() > 200) {
                 Direction newDir = getSpawnDirection(RobotType.SOLDIER);
                 if (newDir != null) {
                     rc.spawn(newDir, RobotType.SOLDIER);
                 }
             }
-			
+
             rc.yield();
         }
     }
@@ -283,23 +236,13 @@ public class RobotPlayer {
         }
     }
 
-    public static class Tower extends BaseBot{
-    	public Tower(RobotController rc){
-    		super(rc);
-    	}
-    	
-    	public void execute() throws GameActionException{
-    		//Defend itself
-            RobotInfo[] enemies = getEnemiesInAttackingRange();
-            
-            if (enemies.length > 0) {
-                //attack!
-                if (rc.isWeaponReady()) {
-                    attackHighestPriorityEnemy(enemies);
-                }
-            }
-    		
-    		rc.yield();
-    	}
+    public static class Tower extends BaseBot {
+        public Tower(RobotController rc) {
+            super(rc);
+        }
+
+        public void execute() throws GameActionException {
+            rc.yield();
+        }
     }
 }
